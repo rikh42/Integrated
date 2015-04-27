@@ -2,8 +2,17 @@
 
 namespace Laracasts\Integrated\Extensions\Traits;
 
+use Laracasts\Integrated\Str;
+
 trait ApiRequests
 {
+
+    /**
+     * User-specified headers.
+     *
+     * @var array headers
+     */
+    protected $headers = [];
 
     /**
      * Make a GET request to an API endpoint.
@@ -13,7 +22,7 @@ trait ApiRequests
      */
     protected function get($uri)
     {
-        $this->call('GET', $uri);
+        $this->call('GET', $uri, [], [], [], $this->headers);
 
         return $this;
     }
@@ -38,7 +47,7 @@ trait ApiRequests
      */
     protected function post($uri, array $data)
     {
-        $this->call('POST', $uri, $data);
+        $this->call('POST', $uri, $data, [], [], $this->headers);
 
         return $this;
     }
@@ -52,7 +61,7 @@ trait ApiRequests
      */
     protected function put($uri, array $data)
     {
-        $this->call('PUT', $uri, $data);
+        $this->call('PUT', $uri, $data, [], [], $this->headers);
 
         return $this;
     }
@@ -66,7 +75,7 @@ trait ApiRequests
      */
     protected function patch($uri, array $data)
     {
-        $this->call('PATCH', $uri, $data);
+        $this->call('PATCH', $uri, $data, [], [], $this->headers);
 
         return $this;
     }
@@ -79,7 +88,7 @@ trait ApiRequests
      */
     protected function delete($uri)
     {
-        $this->call('DELETE', $uri);
+        $this->call('DELETE', $uri, [], [], [], $this->headers);
 
         return $this;
     }
@@ -164,10 +173,14 @@ trait ApiRequests
         // If we have a collection of results, we'll sift through each array
         // in the collection, and check to see if there's a match.
 
-        if ( ! isset($json[0])) $json = [$json];
+        if (! isset($json[0])) {
+            $json = [$json];
+        }
 
-        $containsFragment = array_reduce($json, function($carry, $array) use ($expected) {
-            if ($carry) return $carry;
+        $containsFragment = array_reduce($json, function ($carry, $array) use ($expected) {
+            if ($carry) {
+                return $carry;
+            }
 
             return $this->jsonHasFragment($expected, $array);
         });
@@ -191,7 +204,7 @@ trait ApiRequests
     {
         $hasMatch = @array_intersect($json, $fragment) == $fragment;
 
-        if ( ! $hasMatch) {
+        if (! $hasMatch) {
             $hasMatch = $this->searchJsonFor($fragment, $json);
         }
 
@@ -228,5 +241,28 @@ trait ApiRequests
         }
 
         return false;
+    }
+
+    /**
+     * An array of headers to pass along with the request
+     *
+     * @param array $headers
+     * @return $this
+     */
+    protected function withHeaders(array $headers)
+    {
+        $clean = [];
+
+        foreach ($headers as $key => $value) {
+            if (! Str::startsWith($key, ['HTTP_', 'CONTENT_'])) {
+                $key = 'HTTP_' . $key;
+            }
+
+            $clean[$key] = $value;
+        }
+
+        $this->headers = array_merge($this->headers, $clean);
+
+        return $this;
     }
 }
